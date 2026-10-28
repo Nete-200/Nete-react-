@@ -1,3 +1,4 @@
+
 /* =========================
    GLOBAL STYLES
 ========================= */
@@ -15,13 +16,13 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: Arial, sans-serif;
-  background-color: #fff7ed;
-  background-image: url("https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1600&q=80");
+  background-color: #f4f6f8;
+  background-image: url("https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=1600&q=80");
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   background-repeat: no-repeat;
-  color: #17324d;
+  color: #1f2937;
 }
 
 button,
@@ -46,11 +47,11 @@ h1 {
 }
 
 h2 {
-  color: #0c4a6e;
+  color: #1f2937;
 }
 
 p {
-  color: #475569;
+  color: #4b5563;
 }
 
 a,
@@ -76,7 +77,7 @@ textarea {
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
-  background-color: #0284c7;
+  background-color: #1f2937;
   color: #ffffff;
 }
 
@@ -114,7 +115,7 @@ textarea {
 
 .navbar-links a:hover,
 .navbar-links .nav-link:hover {
-  background-color: #0369a1;
+  background-color: #374151;
   color: #ffffff;
 }
 
@@ -122,20 +123,20 @@ textarea {
 
 .navbar-links a.active,
 .navbar-links .nav-link.active {
-  background-color: #be185d;
+  background-color: #2563eb;
   color: #ffffff;
   font-weight: bold;
 }
 
 .navbar-links a:focus-visible,
 .navbar-links .nav-link:focus-visible {
-  outline: 2px solid #f9a8d4;
+  outline: 2px solid #93c5fd;
   outline-offset: 3px;
 }
 
 .user-info {
   margin-left: 8px;
-  color: #e0f2fe;
+  color: #e5e7eb;
   font-size: 14px;
   white-space: nowrap;
 }
@@ -152,7 +153,7 @@ main {
   min-height: calc(100vh - 70px);
   margin: 0 auto;
   padding: 30px 20px;
-  background-color: rgba(255, 250, 245, 0.96);
+  background-color: rgba(255, 255, 255, 0.96);
 }
 
 .main-content {
@@ -163,7 +164,7 @@ main {
 }
 
 main p {
-  color: #475569;
+  color: #4b5563;
 }
 
 /* =========================
@@ -182,7 +183,7 @@ main p {
   padding: 20px;
   border-radius: 8px;
   background-color: #ffffff;
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .dashboard-card h3 {
@@ -197,7 +198,7 @@ main p {
 }
 
 .low-stock-card {
-  border-left: 5px solid #ea580c;
+  border-left: 5px solid #dc2626;
 }
 
 /* =========================
@@ -210,7 +211,7 @@ main p {
   margin: 20px 0;
   border-radius: 12px;
   background-color: #ffffff;
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.10);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -218,7 +219,7 @@ table {
   width: 100%;
   border-collapse: collapse;
   background-color: #ffffff;
-  color: #17324d;
+  color: #1f2937;
 }
 
 th,
@@ -226,13 +227,13 @@ td {
   padding: 16px 18px;
   text-align: left;
   vertical-align: middle;
-  border-bottom: 1px solid #fed7aa;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 thead th,
 th {
-  background-color: #e0f2fe;
-  color: #0c4a6e;
+  background-color: #f3f4f6;
+  color: #1f2937;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -243,7 +244,7 @@ tbody tr {
 }
 
 tbody tr:hover {
-  background-color: #fdf2f8;
+  background-color: #f9fafb;
 }
 
 tbody tr:last-child td {
@@ -275,7 +276,7 @@ tbody tr.low-stock:hover {
   padding: 25px;
   border-radius: 8px;
   background-color: #ffffff;
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .form-card h2,
@@ -306,10 +307,10 @@ tbody tr.low-stock:hover {
   width: 100%;
   min-width: 0;
   padding: 11px;
-  border: 1px solid #fdba74;
+  border: 1px solid #d1d5db;
   border-radius: 5px;
   background-color: #ffffff;
-  color: #17324d;
+  color: #1f2937;
   font-size: 15px;
 }
 
@@ -317,14 +318,14 @@ tbody tr.low-stock:hover {
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #0284c7;
-  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.18);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #f9a8d4;
+  outline: 2px solid #93c5fd;
   outline-offset: 1px;
 }
 
@@ -333,16 +334,16 @@ textarea:focus-visible {
 select {
   max-width: 100%;
   padding: 11px;
-  border: 1px solid #fdba74;
+  border: 1px solid #d1d5db;
   border-radius: 5px;
   background-color: #ffffff;
-  color: #17324d;
+  color: #1f2937;
   font-size: 15px;
 }
 
 select:focus {
   outline: none;
-  border-color: #0284c7;
+  border-color: #2563eb;
 }
 
 /* =========================
@@ -372,18 +373,18 @@ select:focus {
 }
 
 .primary-button {
-  background-color: #0284c7;
+  background-color: #2563eb;
   color: #ffffff;
 }
 
 .secondary-button {
-  background-color: #ea580c;
+  background-color: #6b7280;
   color: #ffffff;
 }
 
 .edit-button {
   margin-right: 6px;
-  background-color: #0284c7;
+  background-color: #2563eb;
   color: #ffffff;
 }
 
@@ -403,7 +404,7 @@ select:focus {
 .secondary-button:focus-visible,
 .edit-button:focus-visible,
 .delete-button:focus-visible {
-  outline: 2px solid #f9a8d4;
+  outline: 2px solid #93c5fd;
   outline-offset: 2px;
 }
 
@@ -444,8 +445,8 @@ select:focus {
   max-width: 450px;
   padding: 25px;
   border-radius: 8px;
-  background-color: rgba(255, 250, 245, 0.97);
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12);
+  background-color: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .auth-card h1,
@@ -463,20 +464,20 @@ select:focus {
 .auth-card select {
   width: 100%;
   padding: 11px;
-  border: 1px solid #fdba74;
+  border: 1px solid #d1d5db;
   border-radius: 5px;
   background-color: #ffffff;
 }
 
 .auth-container p {
-  color: #475569;
+  color: #4b5563;
 }
 
 .link-button {
   padding: 4px;
   border: none;
   background: none;
-  color: #be185d;
+  color: #2563eb;
   font-weight: bold;
   cursor: pointer;
 }
@@ -509,7 +510,7 @@ select:focus {
 }
 
 .logout-button:focus-visible {
-  outline: 2px solid #f9a8d4;
+  outline: 2px solid #fca5a5;
   outline-offset: 3px;
 }
 
