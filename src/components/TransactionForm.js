@@ -1,5 +1,9 @@
 
+
+
 import React, { useState } from "react";
+
+const API_URL = "http://localhost:5000";
 
 function TransactionForm({
   books,
@@ -16,31 +20,40 @@ function TransactionForm({
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Identify the currently logged-in user.
-  const userId =
-    loggedInUser?.id ??
-    loggedInUser?.membershipId ??
-    loggedInUser?.email ??
-    loggedInUser?.username ??
-    loggedInUser?.name;
+  // MySQL user_id is an INT, so use a numeric account ID.
+  const rawUserId =
+    loggedInUser?.id ?? loggedInUser?.userId ?? loggedInUser?.membershipId;
+
+  const userId = Number(rawUserId);
 
   const userName =
-    loggedInUser?.name ??
-    loggedInUser?.username ??
-    loggedInUser?.email ??
+    loggedInUser?.name ||
+    loggedInUser?.username ||
+    loggedInUser?.email ||
     "Unknown user";
 
-  const canAddStock = isAdmin || isStaff;
+  const canAddStock = Boolean(isAdmin || isStaff);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-
     setError("");
     setMessage("");
 
-    if (!loggedInUser || userId == null) {
-      setError("Please log in with a valid user account.");
+    if (loading) return;
+
+    if (
+      !loggedInUser ||
+      rawUserId == null ||
+      rawUserId === "" ||
+      !Number.isSafeInteger(userId) ||
+      userId <= 0 ||
+      userId > 2147483647
+    ) {
+      setError(
+        "Your account has no valid numeric user ID. Please log out and log in again, or check your login code."
+      );
       return;
     }
 
@@ -51,19 +64,24 @@ function TransactionForm({
 
     const amount = Number(quantity);
 
-    if (!Number.isInteger(amount) || amount <= 0) {
+    if (!Number.isSafeInteger(amount) || amount <= 0) {
       setError("Quantity must be a whole number greater than 0.");
       return;
     }
 
-    if (type === "Add Stock" && !canAddStock) {
-      setError("Only Admin and Staff can add stock.");
+    if (type === "Add Stock") {
+      if (!canAddStock) {
+        setError("Only Admin and Staff can add stock.");
+        return;
+      }
+
+      setError(
+        "Add Stock is not connected yet. Borrow and Return are supported."
+      );
       return;
     }
 
-    if (
-      !["Borrow", "Return", "Add Stock"].includes(type)
-    ) {
+    if (!["Borrow", "Return"].includes(type)) {
       setError("Invalid transaction type.");
       return;
     }
@@ -73,116 +91,91 @@ function TransactionForm({
     );
 
     if (!selectedBook) {
-      setError("Book not found.");
+      setError("Book not found. Please refresh the page.");
       return;
     }
 
-    const currentAvailable = Number(selectedBook.available);
-    const currentQuantity = Number(selectedBook.quantity);
+    setLoading(true);
 
-    if (
-      !Number.isFinite(currentAvailable) ||
-      !Number.isFinite(currentQuantity)
-    ) {
-      setError("The book's stock information is invalid.");
-      return;
-    }
+    try {
+      const response = await fetch(`${API_URL}/transactions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bookId: Number(selectedBook.id),
+          type,
+          quantity: amount,
+          userId,
+          userName,
+        }),
+      });
 
-    // Borrowing is limited to available copies.
-    if (
-      type === "Borrow" &&
-      currentAvailable < amount
-    ) {
-      setError("Not enough copies available.");
-      return;
-    }
+      const result = await response.json();
 
-    // Calculate how many copies this user has borrowed
-    // and not yet returned for this book.
-    const outstandingBorrowed = transactions.reduce(
-      (total, transaction) => {
-        const sameBook =
-          String(transaction.bookId) === String(selectedBook.id);
+      if (!response.ok) {
+        throw new Error(
+          result.details
+            ? `${result.error || "Transaction failed."} ${result.details}`
+            : result.error || "Transaction failed."
+        );
+      }
 
-        const sameUser =
-          String(transaction.userId) === String(userId);
+      const [booksResponse, transactionsResponse] = await Promise.all([
+        fetch(`${API_URL}/books`),
+        fetch(`${API_URL}/transactions`),
+      ]);
 
-        if (!sameBook || !sameUser) {
+      if (!booksResponse.ok || !transactionsResponse.ok) {
+        throw new Error(
+          "Transaction saved, but refreshing the data failed. Refresh the page."
+        );
+      }
+
+      const latestBooks = await booksResponse.json();
+      const latestTransactions = await transactionsResponse.json();
+
+      const updatedBooks = latestBooks.map((book) => {
+        const borrowed = latestTransactions.reduce((total, transaction) => {
+          if (
+            String(transaction.bookId ?? transaction.book_id) !==
+            String(book.id)
+          ) {
+            return total;
+          }
+
+          if (transaction.type === "Borrow") {
+            return total + Number(transaction.quantity);
+          }
+
+          if (transaction.type === "Return") {
+            return total - Number(transaction.quantity);
+          }
+
           return total;
-        }
+        }, 0);
 
-        const transactionQuantity = Number(transaction.quantity) || 0;
+        return {
+          ...book,
+          available: Number(book.quantity) - borrowed,
+        };
+      });
 
-        if (transaction.type === "Borrow") {
-          return total + transactionQuantity;
-        }
-
-        if (transaction.type === "Return") {
-          return total - transactionQuantity;
-        }
-
-        return total;
-      },
-      0
-    );
-
-    // Users can only return books they have borrowed.
-    if (type === "Return" && outstandingBorrowed < amount) {
+      setBooks(updatedBooks);
+      setTransactions(latestTransactions);
+      setBookId("");
+      setType("Borrow");
+      setQuantity(1);
+      setMessage(result.message || "Transaction completed successfully.");
+    } catch (err) {
       setError(
-        "You cannot return more copies than you have borrowed."
+        err.message ||
+          "Could not connect to the server. Check that your backend is running."
       );
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    // Add stock increases both total quantity and availability.
-    // Borrowing and returning change availability only.
-    const updatedBooks = books.map((book) => {
-      if (String(book.id) !== String(selectedBook.id)) {
-        return book;
-      }
-
-      if (type === "Borrow") {
-        return {
-          ...book,
-          available: currentAvailable - amount,
-        };
-      }
-
-      if (type === "Return") {
-        return {
-          ...book,
-          available: currentAvailable + amount,
-        };
-      }
-
-      return {
-        ...book,
-        quantity: currentQuantity + amount,
-        available: currentAvailable + amount,
-      };
-    });
-
-    const newTransaction = {
-      id: Date.now(),
-      bookId: selectedBook.id,
-      bookTitle: selectedBook.title,
-      type,
-      quantity: amount,
-      userId,
-      userName,
-      date: new Date().toLocaleString(),
-    };
-
-    setBooks(updatedBooks);
-    setTransactions((previousTransactions) => [
-      ...previousTransactions,
-      newTransaction,
-    ]);
-
-    setBookId("");
-    setType("Borrow");
-    setQuantity(1);
-    setMessage("Transaction completed successfully.");
   };
 
   return (
@@ -208,7 +201,6 @@ function TransactionForm({
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="transaction-book">Book</label>
-
           <select
             id="transaction-book"
             value={bookId}
@@ -216,20 +208,17 @@ function TransactionForm({
             required
           >
             <option value="">Select a book</option>
-
             {books.map((book) => (
               <option key={book.id} value={book.id}>
-                {book.title} - Available: {book.available}
+                {book.title} - Available:{" "}
+                {book.available ?? book.quantity ?? 0}
               </option>
             ))}
           </select>
         </div>
 
         <div className="form-group">
-          <label htmlFor="transaction-type">
-            Transaction Type
-          </label>
-
+          <label htmlFor="transaction-type">Transaction Type</label>
           <select
             id="transaction-type"
             value={type}
@@ -237,7 +226,6 @@ function TransactionForm({
           >
             <option value="Borrow">Borrow Book</option>
             <option value="Return">Return Book</option>
-
             {canAddStock && (
               <option value="Add Stock">Add Stock</option>
             )}
@@ -245,10 +233,7 @@ function TransactionForm({
         </div>
 
         <div className="form-group">
-          <label htmlFor="transaction-quantity">
-            Quantity
-          </label>
-
+          <label htmlFor="transaction-quantity">Quantity</label>
           <input
             id="transaction-quantity"
             type="number"
@@ -264,8 +249,9 @@ function TransactionForm({
           <button
             type="submit"
             className="primary-button"
+            disabled={loading}
           >
-            Complete Transaction
+            {loading ? "Processing..." : "Complete Transaction"}
           </button>
         </div>
       </form>

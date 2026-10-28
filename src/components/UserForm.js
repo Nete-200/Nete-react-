@@ -1,6 +1,7 @@
 
-
 import React, { useEffect, useState } from "react";
+
+const API_URL = "http://localhost:5000";
 
 const emptyForm = {
   name: "",
@@ -18,13 +19,16 @@ function UserForm({
   const [formData, setFormData] = useState({ ...emptyForm });
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (editingUser) {
       setFormData({
         name: editingUser.name || "",
         membershipId: editingUser.membershipId || "",
-        role: editingUser.role || "Member",
+        role:
+          editingUser.role?.charAt(0).toUpperCase() +
+            editingUser.role?.slice(1).toLowerCase() || "Member",
       });
     } else {
       setFormData({ ...emptyForm });
@@ -45,7 +49,7 @@ function UserForm({
     }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
     setMessage("");
@@ -57,14 +61,14 @@ function UserForm({
 
     const name = formData.name.trim();
     const membershipId = formData.membershipId.trim();
-    const role = formData.role;
+    const role = formData.role.toLowerCase();
 
     if (!name || !membershipId) {
       setError("Please complete all fields.");
       return;
     }
 
-    if (!["Member", "Staff", "Admin"].includes(role)) {
+    if (!["member", "staff", "admin"].includes(role)) {
       setError("Please select a valid role.");
       return;
     }
@@ -81,39 +85,70 @@ function UserForm({
       return;
     }
 
-    if (editingUser) {
+    if (!editingUser) {
+      setError(
+        "New accounts must be created through registration. Select an existing user to edit their details."
+      );
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("Your session token is missing. Please log in again.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/users/${editingUser.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name,
+            membershipId,
+            role,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || data.message || "Failed to update user."
+        );
+      }
+
+      const updatedUser = {
+        ...editingUser,
+        name,
+        membershipId,
+        role: role.charAt(0).toUpperCase() + role.slice(1),
+      };
+
       setUsers((previousUsers) =>
         previousUsers.map((user) =>
           String(user.id) === String(editingUser.id)
-            ? {
-                ...user,
-                name,
-                membershipId,
-                role,
-              }
+            ? { ...user, ...updatedUser }
             : user
         )
       );
 
       setEditingUser(null);
-      setMessage("User updated successfully.");
-    } else {
-      const newUser = {
-        id: Date.now(),
-        name,
-        membershipId,
-        role,
-      };
-
-      setUsers((previousUsers) => [
-        ...previousUsers,
-        newUser,
-      ]);
-
-      setMessage("User added successfully.");
+      setFormData({ ...emptyForm });
+      setMessage("User updated successfully in the database.");
+    } catch (err) {
+      setError(err.message || "Could not connect to the server.");
+    } finally {
+      setLoading(false);
     }
-
-    setFormData({ ...emptyForm });
   };
 
   const handleCancel = () => {
@@ -125,7 +160,7 @@ function UserForm({
 
   return (
     <div className="form-card">
-      <h2>{editingUser ? "Update User" : "Add User"}</h2>
+      <h2>{editingUser ? "Update User" : "Edit Existing User"}</h2>
 
       {error && (
         <div className="error-message" role="alert">
@@ -139,6 +174,10 @@ function UserForm({
         </div>
       )}
 
+      {!editingUser && (
+        <p>Select Update beside a user in the table to edit their details.</p>
+      )}
+
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="user-name">Name</label>
@@ -149,20 +188,20 @@ function UserForm({
             onChange={handleChange}
             placeholder="Enter user name"
             required
+            disabled={!editingUser || loading}
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="user-membership-id">
-            Membership ID
-          </label>
+          <label htmlFor="user-membership-id">Membership ID</label>
           <input
             id="user-membership-id"
             name="membershipId"
             value={formData.membershipId}
             onChange={handleChange}
-            placeholder="e.g. LIB003"
+            placeholder="Enter membership ID"
             required
+            disabled={!editingUser || loading}
           />
         </div>
 
@@ -173,6 +212,7 @@ function UserForm({
             name="role"
             value={formData.role}
             onChange={handleChange}
+            disabled={!editingUser || loading}
           >
             <option value="Member">Member</option>
             <option value="Staff">Staff</option>
@@ -181,8 +221,12 @@ function UserForm({
         </div>
 
         <div className="form-buttons">
-          <button type="submit" className="primary-button">
-            {editingUser ? "Save Changes" : "Add User"}
+          <button
+            type="submit"
+            className="primary-button"
+            disabled={!editingUser || loading}
+          >
+            {loading ? "Saving..." : "Save Changes"}
           </button>
 
           {editingUser && (
@@ -190,6 +234,7 @@ function UserForm({
               type="button"
               className="secondary-button"
               onClick={handleCancel}
+              disabled={loading}
             >
               Cancel
             </button>

@@ -1,5 +1,7 @@
 
+
 import React, { useEffect, useState } from "react";
+import { addBook, updateBook } from "../api";
 
 const emptyForm = {
   title: "",
@@ -19,6 +21,7 @@ function BookForm({
   const [formData, setFormData] = useState({ ...emptyForm });
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (editingBook) {
@@ -35,6 +38,7 @@ function BookForm({
     } else {
       setFormData({ ...emptyForm });
       setError("");
+      setMessage("");
     }
   }, [editingBook]);
 
@@ -52,15 +56,12 @@ function BookForm({
     setMessage("");
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
     setMessage("");
 
-    if (!isAdmin) {
-      setError("Only an Admin can manage books.");
-      return;
-    }
+    if (saving) return;
 
     const title = formData.title.trim();
     const author = formData.author.trim();
@@ -112,49 +113,70 @@ function BookForm({
         );
         return;
       }
-
-      const updatedBook = {
-        ...editingBook,
-        title,
-        author,
-        genre,
-        isbn,
-        quantity,
-        available: quantity - borrowedCount,
-      };
-
-      setBooks((previousBooks) =>
-        previousBooks.map((book) =>
-          String(book.id) === String(editingBook.id)
-            ? updatedBook
-            : book
-        )
-      );
-
-      setEditingBook(null);
-      setMessage("Book updated successfully.");
-    } else {
-      const newBook = {
-        id: `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 8)}`,
-        title,
-        author,
-        genre,
-        isbn,
-        quantity,
-        available: quantity,
-      };
-
-      setBooks((previousBooks) => [
-        ...previousBooks,
-        newBook,
-      ]);
-
-      setMessage("Book added successfully.");
     }
 
-    setFormData({ ...emptyForm });
+    const bookData = {
+      title,
+      author,
+      genre,
+      isbn,
+      quantity,
+    };
+
+    try {
+      setSaving(true);
+
+      if (editingBook) {
+        await updateBook(editingBook.id, bookData);
+
+        const oldQuantity = Number(editingBook.quantity ?? 0);
+        const oldAvailable = Number(
+          editingBook.available ?? oldQuantity
+        );
+        const borrowedCount = Math.max(
+          0,
+          oldQuantity - oldAvailable
+        );
+
+        const updatedBook = {
+          ...editingBook,
+          ...bookData,
+          available: quantity - borrowedCount,
+        };
+
+        setBooks((previousBooks) =>
+          previousBooks.map((book) =>
+            String(book.id) === String(editingBook.id)
+              ? updatedBook
+              : book
+          )
+        );
+
+        setEditingBook(null);
+        setMessage("Book updated successfully in the database.");
+      } else {
+        const result = await addBook(bookData);
+
+        const newBook = {
+          id: result.id,
+          ...bookData,
+          available: quantity,
+        };
+
+        setBooks((previousBooks) => [
+          newBook,
+          ...previousBooks,
+        ]);
+
+        setMessage("Book added successfully to the database.");
+      }
+
+      setFormData({ ...emptyForm });
+    } catch (err) {
+      setError(err.message || "Could not save the book.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -244,8 +266,16 @@ function BookForm({
         </div>
 
         <div className="form-buttons">
-          <button type="submit" className="primary-button">
-            {editingBook ? "Save Changes" : "Add Book"}
+          <button
+            type="submit"
+            className="primary-button"
+            disabled={saving}
+          >
+            {saving
+              ? "Saving..."
+              : editingBook
+                ? "Save Changes"
+                : "Add Book"}
           </button>
 
           {editingBook && (
@@ -253,6 +283,7 @@ function BookForm({
               type="button"
               className="secondary-button"
               onClick={handleCancel}
+              disabled={saving}
             >
               Cancel
             </button>
